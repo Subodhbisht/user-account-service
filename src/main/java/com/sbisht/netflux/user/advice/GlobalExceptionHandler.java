@@ -5,6 +5,7 @@ import com.sbisht.netflux.user.exceptions.UserNotFoundException;
 import com.sbisht.netflux.user.exceptions.UsernameAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -34,6 +35,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({MethodArgumentNotValidException.class, HandlerMethodValidationException.class})
     public ProblemDetail handleValidation(Exception ex) {
         return problem(HttpStatus.BAD_REQUEST, "Bad Request", "Validation failed");
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleUnreadableBody(HttpMessageNotReadableException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Bad Request", "Malformed request body");
     }
 
     @ExceptionHandler(MissingRequestHeaderException.class)

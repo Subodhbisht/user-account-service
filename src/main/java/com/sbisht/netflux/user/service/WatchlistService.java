@@ -2,6 +2,7 @@ package com.sbisht.netflux.user.service;
 
 import com.sbisht.netflux.user.entity.WatchlistItem;
 import com.sbisht.netflux.user.exceptions.UserNotFoundException;
+import com.sbisht.netflux.user.mapper.WatchlistItemMapper;
 import com.sbisht.netflux.user.repository.UserRepository;
 import com.sbisht.netflux.user.repository.WatchlistItemRepository;
 import java.util.List;
@@ -33,10 +34,7 @@ public class WatchlistService {
         if (watchlistItemRepository.existsByUser_IdAndMovieId(userId, movieId)) {
             return;
         }
-        var item = new WatchlistItem();
-        item.setUser(userRepository.getReferenceById(userId));
-        item.setMovieId(movieId);
-        watchlistItemRepository.save(item);
+        watchlistItemRepository.save(WatchlistItemMapper.toEntity(userRepository.getReferenceById(userId), movieId));
     }
 
     @Transactional

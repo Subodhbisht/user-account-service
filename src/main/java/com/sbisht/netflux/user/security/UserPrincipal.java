@@ -24,4 +24,9 @@ public record UserPrincipal(Long id,
     public String getUsername() {
         return username;
     }
+
+    @Override
+    public String toString() {
+        return "UserPrincipal[id=" + id + ", username=" + username + ", name=" + name + "]";
+    }
 }

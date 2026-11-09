@@ -92,6 +92,23 @@ class UserApiTest {
     }
 
     @Test
+    @DisplayName("Should return 400 ProblemDetail when request body is malformed")
+    void shouldReturn400WhenBodyMalformed() {
+        var problem = restTestClient.post()
+                .uri("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"username\": ")
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(ProblemDetail.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(problem.getStatus()).isEqualTo(400);
+        assertThat(problem.getDetail()).isEqualTo("Malformed request body");
+    }
+
+    @Test
     @DisplayName("Should return signed token with userId subject and name on valid login")
     @Sql(scripts = "/sql/insert-users.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     void shouldLoginWithValidCredentials() {
