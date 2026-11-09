@@ -28,7 +28,7 @@
 ```
 - Run locally (via TestApplication + Testcontainers):
 ```bash
-./mvnw spring-boot:test-run -Dspring-boot.run.profiles=test
+./mvnw spring-boot:test-run
 ```
 
 ### Testing Lifecycle
