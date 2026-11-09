@@ -4,7 +4,6 @@ import com.sbisht.netflux.user.dto.LoginRequest;
 import com.sbisht.netflux.user.dto.LoginResponse;
 import com.sbisht.netflux.user.dto.RegisterRequest;
 import com.sbisht.netflux.user.exceptions.InvalidCredentialsException;
-import com.sbisht.netflux.user.exceptions.UsernameAlreadyExistsException;
 import com.sbisht.netflux.user.mapper.UserMapper;
 import com.sbisht.netflux.user.repository.UserRepository;
 import com.sbisht.netflux.user.security.UserPrincipal;
@@ -35,9 +34,6 @@ public class UserService {
 
     @Transactional
     public void register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.username())) {
-            throw new UsernameAlreadyExistsException(request.username());
-        }
         userRepository.save(UserMapper.toEntity(request, passwordEncoder.encode(request.password())));
     }
 

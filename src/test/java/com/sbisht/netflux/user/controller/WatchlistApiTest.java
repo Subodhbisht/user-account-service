@@ -5,6 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.sbisht.netflux.user.TestcontainersConfiguration;
 import com.sbisht.netflux.user.dto.AddWatchlistItemRequest;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +74,31 @@ class WatchlistApiTest {
                 .expectStatus().isCreated();
 
         assertThat(getWatchlist(1001L)).containsExactly(300L, 100L, 200L);
+    }
+
+    @Test
+    @DisplayName("Should add movie once when concurrent adds race")
+    void shouldAddMovieOnceWhenConcurrentAddsRace() throws Exception {
+        var requestCount = 10;
+        var startLatch = new CountDownLatch(1);
+
+        try (var executor = Executors.newFixedThreadPool(requestCount)) {
+            var futures = IntStream.range(0, requestCount)
+                    .mapToObj(i -> executor.submit(() -> {
+                        startLatch.await();
+                        return addMovieStatus(1002L, 700L);
+                    }))
+                    .toList();
+            startLatch.countDown();
+
+            var statuses = futures.stream()
+                    .map(WatchlistApiTest::await)
+                    .toList();
+
+            assertThat(statuses).containsOnly(201);
+        }
+
+        assertThat(getWatchlist(1002L)).containsExactly(700L);
     }
 
     @Test
@@ -219,6 +248,26 @@ class WatchlistApiTest {
                 .getResponseBody();
 
         assertThat(problem.getStatus()).isEqualTo(404);
+    }
+
+    private int addMovieStatus(Long userId, Long movieId) {
+        return restTestClient.post()
+                .uri("/api/users/watchlist")
+                .header(USER_ID_HEADER, String.valueOf(userId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new AddWatchlistItemRequest(movieId))
+                .exchange()
+                .returnResult()
+                .getStatus()
+                .value();
+    }
+
+    private static <T> T await(Future<T> future) {
+        try {
+            return future.get();
+        } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
     private List<Long> getWatchlist(Long userId) {

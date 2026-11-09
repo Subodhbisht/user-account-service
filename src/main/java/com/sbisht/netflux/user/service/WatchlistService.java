@@ -2,7 +2,6 @@ package com.sbisht.netflux.user.service;
 
 import com.sbisht.netflux.user.entity.WatchlistItem;
 import com.sbisht.netflux.user.exceptions.UserNotFoundException;
-import com.sbisht.netflux.user.mapper.WatchlistItemMapper;
 import com.sbisht.netflux.user.repository.UserRepository;
 import com.sbisht.netflux.user.repository.WatchlistItemRepository;
 import java.util.List;
@@ -31,10 +30,7 @@ public class WatchlistService {
     @Transactional
     public void addMovie(Long userId, Long movieId) {
         ensureUserExists(userId);
-        if (watchlistItemRepository.existsByUser_IdAndMovieId(userId, movieId)) {
-            return;
-        }
-        watchlistItemRepository.save(WatchlistItemMapper.toEntity(userRepository.getReferenceById(userId), movieId));
+        watchlistItemRepository.insertIfAbsent(userId, movieId);
     }
 
     @Transactional

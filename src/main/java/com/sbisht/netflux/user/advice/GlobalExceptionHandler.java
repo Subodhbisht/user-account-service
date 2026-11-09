@@ -2,7 +2,7 @@ package com.sbisht.netflux.user.advice;
 
 import com.sbisht.netflux.user.exceptions.InvalidCredentialsException;
 import com.sbisht.netflux.user.exceptions.UserNotFoundException;
-import com.sbisht.netflux.user.exceptions.UsernameAlreadyExistsException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -17,9 +17,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(UsernameAlreadyExistsException.class)
-    public ProblemDetail handleUsernameAlreadyExists(UsernameAlreadyExistsException ex) {
-        return problem(HttpStatus.CONFLICT, "Conflict", ex.getMessage());
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        return problem(HttpStatus.CONFLICT, "Conflict", "Resource already exists");
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)

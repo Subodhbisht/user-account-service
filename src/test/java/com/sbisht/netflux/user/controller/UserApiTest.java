@@ -8,6 +8,10 @@ import com.sbisht.netflux.user.dto.LoginRequest;
 import com.sbisht.netflux.user.dto.LoginResponse;
 import com.sbisht.netflux.user.dto.RegisterRequest;
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +77,35 @@ class UserApiTest {
                 .getResponseBody();
 
         assertThat(problem.getStatus()).isEqualTo(409);
+        assertThat(problem.getDetail()).isEqualTo("Resource already exists");
+    }
+
+    @Test
+    @DisplayName("Should return 409 when concurrent registrations race")
+    void shouldReturn409WhenConcurrentRegistrationsRace() throws Exception {
+        var requestCount = 10;
+        var startLatch = new CountDownLatch(1);
+
+        try (var executor = Executors.newFixedThreadPool(requestCount)) {
+            var futures = IntStream.range(0, requestCount)
+                    .mapToObj(i -> executor.submit(() -> {
+                        startLatch.await();
+                        return registerStatus(new RegisterRequest("racer", "password123", "Racer"));
+                    }))
+                    .toList();
+            startLatch.countDown();
+
+            var statuses = futures.stream()
+                    .map(UserApiTest::await)
+                    .toList();
+
+            assertThat(statuses).containsOnly(201, 409);
+            assertThat(statuses).filteredOn(status -> status == 201).hasSize(1);
+        }
+
+        var userCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM users WHERE username = ?", Integer.class, "racer");
+        assertThat(userCount).isEqualTo(1);
     }
 
     @Test
@@ -180,5 +213,24 @@ class UserApiTest {
                 .getResponseBody();
 
         assertThat(problem.getStatus()).isEqualTo(400);
+    }
+
+    private int registerStatus(RegisterRequest request) {
+        return restTestClient.post()
+                .uri("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .exchange()
+                .returnResult()
+                .getStatus()
+                .value();
+    }
+
+    private static <T> T await(Future<T> future) {
+        try {
+            return future.get();
+        } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 }
